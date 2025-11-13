@@ -1,0 +1,6 @@
+### 测试请求 /select-list 接口 => 成功
+POST {{baseUrl}}/lowcode/deploy-api/test/select-list?apiCode=API00000404
+Content-Type: application/json
+tenant-id: 1
+
+{}
