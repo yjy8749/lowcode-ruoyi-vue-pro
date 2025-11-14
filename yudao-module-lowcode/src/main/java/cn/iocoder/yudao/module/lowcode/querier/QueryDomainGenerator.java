@@ -73,7 +73,7 @@ public class QueryDomainGenerator {
             throw e;
         } catch (Throwable e) {
             log.error(String.valueOf(QUERY_DOMAIN_GEN_XML_ERROR), e);
-            throw exception(QUERY_DOMAIN_GEN_XML_ERROR);
+            throw exception0(QUERY_DOMAIN_GEN_XML_ERROR.getCode(), e.getMessage());
         }
     }
 
