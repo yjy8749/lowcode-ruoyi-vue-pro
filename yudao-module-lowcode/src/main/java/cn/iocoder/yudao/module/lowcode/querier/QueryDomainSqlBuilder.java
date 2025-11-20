@@ -10,6 +10,7 @@ import cn.iocoder.yudao.module.lowcode.querier.common.QueryDomainWhereParams;
 import cn.iocoder.yudao.module.lowcode.querier.xml.QueryDomain;
 import cn.iocoder.yudao.module.lowcode.querier.xml.QueryField;
 import cn.iocoder.yudao.module.lowcode.querier.xml.QueryTable;
+import com.alibaba.fastjson.JSON;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -25,10 +26,13 @@ import java.util.stream.Collectors;
 @Slf4j
 public class QueryDomainSqlBuilder {
     private final QueryDomainContext context;
+    private final Set<String> invalidQueryTableIdSet;
     private final Map<String, QueryTable> queryTableMap;
     private final Map<String, QueryFieldInfo> queryFieldInfoMap;
     @Getter
     private final Map<String, Object> sqlParams = new HashMap<>();
+    @Getter
+    private final Map<String, String> sqlFragments = new HashMap<>();
     private String selectSql = "";
     private String columnSql = "";
     private String tableSql = "";
@@ -39,13 +43,33 @@ public class QueryDomainSqlBuilder {
     public QueryDomainSqlBuilder(QueryDomainContext context) {
         this.context = context;
         this.queryTableMap = context.getTableList().stream().collect(Collectors.toMap(QueryTable::getId, v -> v));
+        this.invalidQueryTableIdSet = getInvalidQueryTableIdSet();
         this.queryFieldInfoMap = getQueryFieldInfoMap();
         this.context.setTableFieldList(this.queryFieldInfoMap.values().stream().map(e -> e.queryField).toList());
     }
 
+    private Set<String> getInvalidQueryTableIdSet() {
+        var invalidSet = new HashSet<String>();
+        if (CollectionUtil.isNotEmpty(context.getDomain().getMainTableList())) {
+            for (QueryTable table : context.getDomain().getMainTableList()) {
+                if (!this.queryTableMap.containsKey(table.getId())) {
+                    invalidSet.add(table.getId());
+                }
+            }
+        }
+        if (CollectionUtil.isNotEmpty(context.getDomain().getQueryTableList())) {
+            for (QueryTable table : context.getDomain().getQueryTableList()) {
+                if (!this.queryTableMap.containsKey(table.getId())) {
+                    invalidSet.add(table.getId());
+                }
+            }
+        }
+        return invalidSet;
+    }
+
     // tableId 是否有效
     private boolean isTableIdValid(String id) {
-        return this.context.getMainTable().getId().equals(id) || queryTableMap.containsKey(id);
+        return this.context.getMainTable().getId().equals(id) || !invalidQueryTableIdSet.contains(id);
     }
 
     // 提取形如: 变量名.字段名 的字符串
@@ -176,28 +200,6 @@ public class QueryDomainSqlBuilder {
         return this;
     }
 
-    private boolean isTenantEnable(QueryTable table) {
-        if (Boolean.FALSE.equals(this.context.getTenantEnable())) {
-            return false;
-        }
-        return !Boolean.TRUE.equals(table.getDisableTenant());
-    }
-
-    private boolean isLogicDeleteEnable(QueryTable table) {
-        return !Boolean.TRUE.equals(table.getDisableLogicDelete());
-    }
-
-    private void appendTenantAndLogicDeleteSql(StringBuilder sql, QueryDomain queryDomain, QueryTable table) {
-        if (isTenantEnable(table)) {
-            sqlParams.put("tenantId", TenantContextHolder.getTenantId());
-            sql.append(" and ").append(table.getId()).append(".tenant_id = #{tenantId}");
-        }
-        if (isLogicDeleteEnable(table)) {
-            sqlParams.put("logicDeleteValue", this.context.getLogicDeleteValue());
-            sql.append(" and ").append(table.getId()).append(".deleted <> #{logicDeleteValue}");
-        }
-    }
-
     private QueryDomainSqlBuilder buildWhereSql() {
         StringBuilder sql = new StringBuilder();
 
@@ -224,9 +226,9 @@ public class QueryDomainSqlBuilder {
         }
 
         var queryParams = this.context.getParams();
-        if (CollectionUtil.isNotEmpty(queryParams.getWhereParamsList())) {
-            for (QueryDomainWhereParams whereParams : queryParams.getWhereParamsList()) {
-                String criteria = buildCriteria(whereParams);
+        if (CollectionUtil.isNotEmpty(queryParams.getWhereParams())) {
+            for (QueryDomainWhereParams whereParams : queryParams.getWhereParams()) {
+                String criteria = buildCriteria("", whereParams);
                 if (StrUtil.isNotEmpty(criteria)) {
                     sql.append(" and (").append(criteria).append(")");
                 }
@@ -237,7 +239,7 @@ public class QueryDomainSqlBuilder {
         return this;
     }
 
-    private String buildCriteria(QueryDomainWhereParams where) {
+    private String buildCriteria(String parentName, QueryDomainWhereParams where) {
         Object value = where.getValue();
         List<Object> values = where.getValues();
         if (where.getSymbol() == null) {
@@ -258,7 +260,8 @@ public class QueryDomainSqlBuilder {
             }
             QueryFieldInfo queryFieldInfo = queryFieldInfoMap.get(where.getName());
             if (queryFieldInfo == null) {
-                throw new IllegalArgumentException(String.format("QueryField %s is not allowed query", where.getName()));
+                log.error(String.format("QueryField %s is not exist", where.getName()));
+                return "";
             }
             if (StrUtil.isEmpty(queryFieldInfo.authType())) {
                 if (StrUtil.isEmpty(queryFieldInfo.symbols()) || !queryFieldInfo.symbols().contains(where.getSymbol().name())) {
@@ -267,9 +270,10 @@ public class QueryDomainSqlBuilder {
             }
 
             int startIndex = 0;
-            String paramName = queryFieldInfo.name();
-            while (sqlParams.containsKey(paramName)) {
-                paramName = queryFieldInfo.name() + (startIndex++);
+            var tempName = StrUtil.isEmpty(parentName) ? queryFieldInfo.name() : parentName + "_" + queryFieldInfo.name();
+            var paramName = tempName;
+            while (sqlParams.containsKey(tempName)) {
+                tempName = tempName + "_" + (startIndex++);
             }
             switch (where.getSymbol()) {
                 case NONE:
@@ -321,8 +325,9 @@ public class QueryDomainSqlBuilder {
                     StringBuilder notString = new StringBuilder();
                     if (CollectionUtil.isNotEmpty(where.getValues())) {
                         for (int i = 0; i < where.getValues().size(); i++) {
-                            sqlParams.put(paramName + i, where.getValues().get(i));
-                            notString.append("#{").append(paramName).append(i).append("},");
+                            var paramId = paramName + "_" + i;
+                            sqlParams.put(paramId, where.getValues().get(i));
+                            notString.append("#{").append(paramId).append("},");
                         }
                     }
                     if (where.getSymbol() == QueryDomainSymbolType.IN) {
@@ -330,7 +335,9 @@ public class QueryDomainSqlBuilder {
                     } else {
                         cb.append(queryFieldInfo.sql).append(" not in (");
                     }
-                    cb.append(notString.substring(0, notString.length() - 1)).append(")");
+                    var sqlFragment = notString.substring(0, notString.length() - 1);
+                    sqlFragments.put(paramName, sqlFragment);
+                    cb.append(sqlFragment).append(")");
                     break;
                 case BETWEEN:
                     sqlParams.put(paramName, where.getValues());
@@ -358,7 +365,7 @@ public class QueryDomainSqlBuilder {
         if (where.getAnds() != null) {
             List<String> andSql = new ArrayList<>();
             for (QueryDomainWhereParams args : where.getAnds()) {
-                andSql.add(buildCriteria(args));
+                andSql.add(buildCriteria(parentName, args));
             }
             var subSql = StringUtils.join(andSql, " and ");
             if (alwaysTrueSql.contentEquals(cb)) {
@@ -370,7 +377,7 @@ public class QueryDomainSqlBuilder {
         if (where.getOrs() != null) {
             List<String> orSql = new ArrayList<>();
             for (QueryDomainWhereParams args : where.getOrs()) {
-                orSql.add(buildCriteria(args));
+                orSql.add(buildCriteria(parentName, args));
             }
             var subSql = "(" + StringUtils.join(orSql, ") or (") + ")";
             if (alwaysTrueSql.contentEquals(cb)) {
@@ -423,7 +430,41 @@ public class QueryDomainSqlBuilder {
     }
 
     public String buildSql() {
-        return String.format("%s %s %s %s %s %s", selectSql, columnSql, tableSql, whereSql, orderBySql, limitSql);
+        log.info("buildSql with sqlFragment : {} ", JSON.toJSONString(sqlFragments));
+        return String.format("%s %s %s %s %s %s", replaceSqlFragment(selectSql),
+                replaceSqlFragment(columnSql), replaceSqlFragment(tableSql),
+                whereSql, orderBySql, limitSql);
+    }
+
+    private String replaceSqlFragment(String sql) {
+        if (CollectionUtil.isNotEmpty(sqlFragments)) {
+            for (Map.Entry<String, String> fragment : sqlFragments.entrySet()) {
+                sql = sql.replaceAll("#[{]" + fragment.getKey() + "[}]", fragment.getValue());
+            }
+        }
+        return sql;
+    }
+
+    private boolean isTenantEnable(QueryTable table) {
+        if (Boolean.FALSE.equals(this.context.getTenantEnable())) {
+            return false;
+        }
+        return !Boolean.TRUE.equals(table.getDisableTenant());
+    }
+
+    private boolean isLogicDeleteEnable(QueryTable table) {
+        return !Boolean.TRUE.equals(table.getDisableLogicDelete());
+    }
+
+    private void appendTenantAndLogicDeleteSql(StringBuilder sql, QueryDomain queryDomain, QueryTable table) {
+        if (isTenantEnable(table)) {
+            sqlParams.put("tenantId", TenantContextHolder.getTenantId());
+            sql.append(" and ").append(table.getId()).append(".tenant_id = #{tenantId}");
+        }
+        if (isLogicDeleteEnable(table)) {
+            sqlParams.put("logicDeleteValue", this.context.getLogicDeleteValue());
+            sql.append(" and ").append(table.getId()).append(".deleted <> #{logicDeleteValue}");
+        }
     }
 
     public record QueryFieldInfo(QueryField queryField, String sql) {

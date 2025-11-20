@@ -39,8 +39,8 @@ public class QueryDomainParamsRequiredFilter implements QueryDomainFilter {
 
         var queryParams = context.getParams();
         Set<String> hasValueParamNameSet = new HashSet<>();
-        if (queryParams != null && CollectionUtil.isNotEmpty(queryParams.getWhereParamsList())) {
-            hasValueParamNameSet = queryParams.getWhereParamsList().stream()
+        if (queryParams != null && CollectionUtil.isNotEmpty(queryParams.getWhereParams())) {
+            hasValueParamNameSet = queryParams.getWhereParams().stream()
                     .filter(e -> {
                         if (e.getValue() != null) {
                             if (e.getValue() instanceof String) {

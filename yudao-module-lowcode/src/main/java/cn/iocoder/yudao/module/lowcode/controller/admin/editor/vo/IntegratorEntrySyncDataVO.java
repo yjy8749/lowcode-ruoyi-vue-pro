@@ -17,6 +17,9 @@ import java.util.List;
 @Data
 public class IntegratorEntrySyncDataVO {
 
+    @Schema(description = "父文件夹")
+    private List<MaterialFileDO> parentDirList;
+
     @Schema(description = "文件")
     private MaterialFileDO materialFileDO;
 

@@ -61,7 +61,7 @@ public class DeployApiServiceImpl implements DeployApiService {
             if (isApiNameExist) {
                 throw exception(DEPLOY_API_NAME_EXISTS);
             }
-            var apiIndex = this.deployApiMapper.selectCountByApiName(apiName) + 1;
+            var apiIndex = this.deployApiMapper.selectCountBySourceFileId(saveData.getFileId()) + 1;
             var apiIndexStr = String.format("%0" + Math.max(String.valueOf(apiIndex).length(), 2) + "d", apiIndex);
             var apiFileId = saveData.getFileId();
             var apiFileIdStr = String.format("%0" + Math.max(String.valueOf(apiFileId).length(), 6) + "d", apiFileId);

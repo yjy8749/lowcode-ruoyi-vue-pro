@@ -7,6 +7,7 @@ import cn.iocoder.yudao.module.lowcode.controller.admin.editor.vo.IntegratorEntr
 import cn.iocoder.yudao.module.lowcode.controller.admin.materialfiledata.vo.GetMaterialFileDataReqVO;
 import cn.iocoder.yudao.module.lowcode.dal.dataobject.deployapi.DeployApiDO;
 import cn.iocoder.yudao.module.lowcode.dal.dataobject.deploymenu.DeployMenuDO;
+import cn.iocoder.yudao.module.lowcode.dal.dataobject.materialfile.MaterialFileDO;
 import cn.iocoder.yudao.module.lowcode.dal.dataobject.materialfiledata.MaterialFileDataDO;
 import cn.iocoder.yudao.module.lowcode.dal.mysql.deployapi.DeployApiMapper;
 import cn.iocoder.yudao.module.lowcode.dal.mysql.deploymenu.DeployMenuMapper;
@@ -27,6 +28,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Optional;
@@ -70,6 +72,16 @@ public class IntegratorDataManager {
         var respVO = new IntegratorEntrySyncDataVO();
         // 文件数据
         respVO.setMaterialFileDO(this.materialFileService.getMaterialFileById(fileId));
+        // 文件夹数据
+        var parentDirList = new ArrayList<MaterialFileDO>();
+        var parentId = respVO.getMaterialFileDO().getParentId();
+        while (parentId > 0) {
+            var parentDir = this.materialFileService.getMaterialFileById(parentId);
+            parentDirList.add(parentDir);
+            parentId = parentDir.getParentId();
+        }
+        respVO.setParentDirList(parentDirList);
+        // 文件数据
         var fileSource = respVO.getMaterialFileDO().getSource();
         if (MaterialFileSource.QUERIER.getValue().equals(fileSource)) {
             //查询器文件
@@ -123,13 +135,30 @@ public class IntegratorDataManager {
         {
             var exist = materialFileMapper.selectById(materialFileDO.getId());
             if (exist != null) {
+                materialFileDO.setName(exist.getName());
                 materialFileDO.setStatus(exist.getStatus());
                 materialFileMapper.updateById(materialFileDO);
             } else {
                 materialFileMapper.insert(materialFileDO);
             }
         }
-        // 2. 同步 MaterialFileDataDOList (文件数据)
+        // 2. 同步 ParentDirList (文件夹信息)
+        var parentDirList = syncDataVO.getParentDirList();
+        {
+            if(CollectionUtil.isNotEmpty(parentDirList)){
+                for (MaterialFileDO fileDO : parentDirList) {
+                    var exist = materialFileMapper.selectById(fileDO.getId());
+                    if (exist != null) {
+                        fileDO.setName(exist.getName());
+                        fileDO.setStatus(exist.getStatus());
+                        materialFileMapper.updateById(fileDO);
+                    } else {
+                        materialFileMapper.insert(fileDO);
+                    }
+                }
+            }
+        }
+        // 3. 同步 MaterialFileDataDOList (文件数据)
         if (CollectionUtil.isNotEmpty(syncDataVO.getMaterialFileDataDOList())) {
             for (var data : syncDataVO.getMaterialFileDataDOList()) {
                 if (materialFileDataMapper.selectById(data.getId()) != null) {
@@ -139,7 +168,7 @@ public class IntegratorDataManager {
                 }
             }
         }
-        // 3. 同步 DeployApiDOList (部署接口)
+        // 4. 同步 DeployApiDOList (部署接口)
         if (CollectionUtil.isNotEmpty(syncDataVO.getDeployApiDOList())) {
             for (DeployApiDO api : syncDataVO.getDeployApiDOList()) {
                 var exist = deployApiMapper.selectById(api.getId());
@@ -152,7 +181,7 @@ public class IntegratorDataManager {
                 }
             }
         }
-        // 4. 同步 RefMenu (关联菜单)
+        // 5. 同步 RefMenu (关联菜单)
         var fileId = syncDataVO.getMaterialFileDO().getId();
         var refMenuIdOpt = this.deployMenuService.getAvailableRefMenuId(fileId);
         if (syncDataVO.getRefMenu() != null) {
@@ -172,7 +201,7 @@ public class IntegratorDataManager {
             }
             refMenuIdOpt = Optional.ofNullable(menu.getId());
         }
-        // 5. 同步 RefButton (关联按钮)
+        // 6. 同步 RefButton (关联按钮)
         if (CollectionUtil.isNotEmpty(syncDataVO.getRefButtonList())) {
             var refButtonNameMap = new HashMap<String, MenuDO>();
             if (refMenuIdOpt.isPresent()) {
@@ -196,7 +225,7 @@ public class IntegratorDataManager {
                 }
             }
         }
-        // 6. 同步 DeployMenuDOList (部署菜单)
+        // 7. 同步 DeployMenuDOList (部署菜单)
         if (CollectionUtil.isNotEmpty(syncDataVO.getDeployMenuDOList())) {
             for (DeployMenuDO menu : syncDataVO.getDeployMenuDOList()) {
                 menu.setMenuId(refMenuIdOpt.orElse(menu.getMenuId()));

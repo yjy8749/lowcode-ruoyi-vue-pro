@@ -24,7 +24,7 @@ public interface DeployApiMapper extends BaseMapperX<DeployApiDO> {
                 .orderByDesc(DeployApiDO::getId));
     }
 
-    @Select("select count(id) from lowcode_deploy_api where api_name = #{apiName}")
-    Long selectCountByApiName(@Param("apiName") String apiName);
+    @Select("select count(id) from lowcode_deploy_api where source_file_id = #{sourceFileId}")
+    Long selectCountBySourceFileId(@Param("sourceFileId") Long sourceFileId);
 
 }

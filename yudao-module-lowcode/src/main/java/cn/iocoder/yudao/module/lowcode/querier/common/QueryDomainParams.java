@@ -18,6 +18,6 @@ public class QueryDomainParams {
     /**
      * 查询参数
      */
-    private List<QueryDomainWhereParams> whereParamsList;
+    private List<QueryDomainWhereParams> whereParams;
 
 }
