@@ -431,9 +431,7 @@ public class QueryDomainSqlBuilder {
 
     public String buildSql() {
         log.info("buildSql with sqlFragment : {} ", JSON.toJSONString(sqlFragments));
-        return String.format("%s %s %s %s %s %s", replaceSqlFragment(selectSql),
-                replaceSqlFragment(columnSql), replaceSqlFragment(tableSql),
-                whereSql, orderBySql, limitSql);
+        return replaceSqlFragment(String.format("%s %s %s %s %s %s", selectSql, columnSql, tableSql, whereSql, orderBySql, limitSql));
     }
 
     private String replaceSqlFragment(String sql) {
