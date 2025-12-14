@@ -54,3 +54,4 @@ application-my.yaml
 **/.DS_Store
 
 /yudao-server/src/main/resources/application-leo*.yaml
+deploy-leo*.sh

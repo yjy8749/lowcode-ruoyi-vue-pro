@@ -355,6 +355,10 @@ public class QueryDomainSqlBuilder {
                     sqlParams.put(paramName, "[" + where.getValue() + "]");
                     cb.append("json_contains(").append(queryFieldInfo.sql).append(",").append("#{").append(paramName).append("},'$')");
                     break;
+                case FIND_IN_SET:
+                    sqlParams.put(paramName, where.getValue());
+                    cb.append("find_in_set(").append("#{").append(paramName).append("},").append(queryFieldInfo.sql).append(")");
+                    break;
                 default:
                     throw new IllegalArgumentException(String.format("where params symbol %s not Supported!", where.getSymbol()));
             }

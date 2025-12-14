@@ -22,4 +22,5 @@ public enum QueryDomainSymbolType {
     ISNULL,             //is null
     NOTNULL,            //is not null
     JSON_CONTAINS,      // json_contains function
+    FIND_IN_SET,        // find_in_set function
 }
