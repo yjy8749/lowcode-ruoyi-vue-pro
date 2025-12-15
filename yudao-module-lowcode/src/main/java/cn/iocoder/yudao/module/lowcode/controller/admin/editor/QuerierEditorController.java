@@ -1,11 +1,14 @@
 package cn.iocoder.yudao.module.lowcode.controller.admin.editor;
 
+import cn.hutool.core.collection.CollectionUtil;
 import cn.iocoder.yudao.framework.common.pojo.CommonResult;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
+import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.infra.controller.admin.db.vo.DataSourceConfigRespVO;
 import cn.iocoder.yudao.module.infra.dal.dataobject.db.DataSourceConfigDO;
 import cn.iocoder.yudao.module.infra.service.db.DataSourceConfigService;
+import cn.iocoder.yudao.module.lowcode.config.LowcodeProperties;
 import cn.iocoder.yudao.module.lowcode.controller.admin.BaseLowcodeController;
 import cn.iocoder.yudao.module.lowcode.controller.admin.editor.vo.*;
 import cn.iocoder.yudao.module.lowcode.controller.admin.materialfiledata.vo.MaterialFileDataRespVO;
@@ -18,6 +21,7 @@ import cn.iocoder.yudao.module.lowcode.querier.QueryDomainExecutorFactory;
 import cn.iocoder.yudao.module.lowcode.querier.QueryDomainGenerator;
 import cn.iocoder.yudao.module.lowcode.querier.xml.QueryDomain;
 import cn.iocoder.yudao.module.lowcode.service.deployapi.DeployApiService;
+import com.alibaba.fastjson.JSON;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
@@ -29,7 +33,9 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
 
+import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
+import static cn.iocoder.yudao.module.lowcode.enums.ErrorCodeConstants.QUERIER_DATA_SOURCE_NOT_ENABLED;
 
 /**
  * @author leo
@@ -42,23 +48,32 @@ public class QuerierEditorController extends BaseLowcodeController {
 
     @Resource
     private QueryDomainGenerator queryDomainGenerator;
-
     @Resource
     private QueryDomainExecutorFactory queryDomainExecutorFactory;
-
     @Resource
     private DataSourceConfigService dataSourceConfigService;
-
     @Resource
     private DeployApiService deployApiService;
     @Resource
     private QueryDomainDeployApi queryDomainDeployApi;
+    @Resource
+    private LowcodeProperties lowcodeProperties;
 
     @GetMapping("/data-source-list")
     @Operation(summary = "获得数据源配置列表")
     public CommonResult<List<DataSourceConfigRespVO>> getDataSourceList() {
         checkSource(EDITOR, MaterialFileSource.QUERIER);
         List<DataSourceConfigDO> list = dataSourceConfigService.getDataSourceConfigList();
+        Long tenantId = TenantContextHolder.getTenantId();
+        if(CollectionUtil.isNotEmpty(lowcodeProperties.getEnabledDataSources())
+                && CollectionUtil.isNotEmpty(lowcodeProperties.getEnabledDataSources().get(tenantId))){
+            List<String> dataSources = lowcodeProperties.getEnabledDataSources().get(tenantId);
+            list = list.stream().filter(i -> dataSources.contains(i.getName())).toList();
+        }else if(CollectionUtil.isNotEmpty(lowcodeProperties.getDisabledDataSources())
+                && CollectionUtil.isNotEmpty(lowcodeProperties.getDisabledDataSources().get(tenantId))){
+            List<String> dataSources = lowcodeProperties.getDisabledDataSources().get(tenantId);
+            list = list.stream().filter(i -> !dataSources.contains(i.getName())).toList();
+        }
         return success(BeanUtils.toBean(list, DataSourceConfigRespVO.class));
     }
 
@@ -98,6 +113,23 @@ public class QuerierEditorController extends BaseLowcodeController {
     @Operation(summary = "查询器-接口部署")
     public CommonResult<MaterialFileDataRespVO> deployApiDeploy(@Valid @RequestBody DeployApiDeployReqVO deployReqVO) {
         checkSourceAndOperator(EDITOR, deployReqVO.getFileId());
+        QuerierEditorDataVO querierEditorDataVO = JSON.parseObject(deployReqVO.getData(), QuerierEditorDataVO.class);
+        var dataSourceConfig = this.dataSourceConfigService.getDataSourceConfig(querierEditorDataVO.getDataSourceId());
+        String dataSourceName = dataSourceConfig.getName();
+        Long tenantId = TenantContextHolder.getTenantId();
+        if(CollectionUtil.isNotEmpty(lowcodeProperties.getEnabledDataSources())
+                && CollectionUtil.isNotEmpty(lowcodeProperties.getEnabledDataSources().get(tenantId))){
+            List<String> dataSources = lowcodeProperties.getEnabledDataSources().get(tenantId);
+            if(!dataSources.contains(dataSourceName)) {
+                throw exception((QUERIER_DATA_SOURCE_NOT_ENABLED));
+            }
+        }else if(CollectionUtil.isNotEmpty(lowcodeProperties.getDisabledDataSources())
+                && CollectionUtil.isNotEmpty(lowcodeProperties.getDisabledDataSources().get(tenantId))){
+            List<String> dataSources = lowcodeProperties.getDisabledDataSources().get(tenantId);
+            if(dataSources.contains(dataSourceName)) {
+                throw exception((QUERIER_DATA_SOURCE_NOT_ENABLED));
+            }
+        }
         MaterialFileDataDO materialFileData = this.deployApiService.deployApiDeploy(deployReqVO);
         return success(BeanUtils.toBean(materialFileData, MaterialFileDataRespVO.class));
     }
@@ -106,7 +138,7 @@ public class QuerierEditorController extends BaseLowcodeController {
     @Operation(summary = "查询器-接口部署分页")
     public CommonResult<PageResult<DeployApiRespVO>> deployApiPage(@Valid DeployApiPageReqVO pageReqVO) {
         checkSourceAndOperator(QUERY, pageReqVO.getSourceFileId());
-        PageResult<DeployApiDO> pageResult = deployApiService.deployApiPage(pageReqVO);
+        PageResult<DeployApiDO> pageResult = this.deployApiService.deployApiPage(pageReqVO);
         return success(BeanUtils.toBean(pageResult, DeployApiRespVO.class));
     }
 

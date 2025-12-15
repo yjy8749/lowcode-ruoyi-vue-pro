@@ -43,6 +43,6 @@ public interface ErrorCodeConstants {
     ErrorCode INTEGRATOR_FILE_SYNC_VERSION_ERROR = new ErrorCode(1_005_000_029, "缺少指定版本数据");
     ErrorCode MEDIA_DIR_NOT_EXISTS = new ErrorCode(1_005_000_030, "目录不存在");
     ErrorCode MEDIA_FILE_NOT_EXISTS = new ErrorCode(1_005_000_031, "文件不存在");
-
+    ErrorCode QUERIER_DATA_SOURCE_NOT_ENABLED = new ErrorCode(1_005_000_032, "数据源不正确");
 
 }

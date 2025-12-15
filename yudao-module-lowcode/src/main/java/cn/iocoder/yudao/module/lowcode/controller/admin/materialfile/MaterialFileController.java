@@ -63,7 +63,7 @@ public class MaterialFileController extends BaseLowcodeController {
     @GetMapping("/get-file")
     @Operation(summary = "获得低代码-物料文件")
     public CommonResult<MaterialFileRespVO> getMaterialFile(@Valid GetMaterialFileReqVO reqVO) {
-        checkSourceForRead(QUERY, reqVO.getId());
+        checkSourceForRead(reqVO.getId());
         var fileDO = materialFileService.getMaterialFileById(reqVO.getId());
         return success(BeanUtils.toBean(fileDO, MaterialFileRespVO.class));
     }

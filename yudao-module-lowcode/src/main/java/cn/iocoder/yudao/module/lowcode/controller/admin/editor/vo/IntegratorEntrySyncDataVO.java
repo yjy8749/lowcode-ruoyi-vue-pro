@@ -32,6 +32,9 @@ public class IntegratorEntrySyncDataVO {
     @Schema(description = "部署的菜单")
     private List<DeployMenuDO> deployMenuDOList;
 
+    @Schema(description = "菜单关联父级")
+    private List<MenuDO> refMenuParentList;
+
     @Schema(description = "关联菜单")
     private MenuDO refMenu;
 

@@ -28,10 +28,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
@@ -93,6 +90,13 @@ public class IntegratorDataManager {
             var refMenuIdOpt = this.deployMenuService.getAvailableRefMenuId(fileId);
             if (refMenuIdOpt.isPresent()) {
                 respVO.setRefMenu(this.menuService.getMenu(refMenuIdOpt.get()));
+                respVO.setRefMenuParentList(new ArrayList<>());
+                Long refParentId = respVO.getRefMenu().getParentId();
+                while (refParentId != null && refParentId > 0) {
+                    var refParent = this.menuService.getMenu(refParentId);
+                    respVO.getRefMenuParentList().add(refParent);
+                    refParentId = refParent.getParentId();
+                }
                 respVO.setRefButtonList(this.deployMenuService.getSystemSubMenuList(refMenuIdOpt.get()));
             }
         }
@@ -182,22 +186,30 @@ public class IntegratorDataManager {
             }
         }
         // 5. 同步 RefMenu (关联菜单)
+        if (CollectionUtil.isNotEmpty(syncDataVO.getRefMenuParentList())) {
+            for (MenuDO menuDO : syncDataVO.getRefMenuParentList()) {
+                if(this.menuService.getMenu(menuDO.getId()) == null) {
+                    this.menuMapper.insert(menuDO);
+                }
+            }
+        }
         var fileId = syncDataVO.getMaterialFileDO().getId();
         var refMenuIdOpt = this.deployMenuService.getAvailableRefMenuId(fileId);
         if (syncDataVO.getRefMenu() != null) {
             var menu = syncDataVO.getRefMenu();
-            if (refMenuIdOpt.isPresent()) {
-                var exist = this.menuService.getMenu(refMenuIdOpt.get());
-                if (exist != null) {
-                    menu.setId(exist.getId());
-                    menu.setDeleted(exist.getDeleted());
-                    menu.setParentId(exist.getParentId());
-                    menu.setStatus(exist.getStatus());
-                    this.menuMapper.updateById(menu);
-                } else {
-                    menu.setId(null);
-                    this.menuMapper.insert(menu);
-                }
+            MenuDO exist = null;
+            if(refMenuIdOpt.isPresent()) {
+                exist = this.menuService.getMenu(refMenuIdOpt.get());
+            }
+            if (exist != null) {
+                menu.setId(exist.getId());
+                menu.setDeleted(exist.getDeleted());
+                menu.setParentId(exist.getParentId());
+                menu.setStatus(exist.getStatus());
+                this.menuMapper.updateById(menu);
+            } else {
+                menu.setId(null);
+                this.menuMapper.insert(menu);
             }
             refMenuIdOpt = Optional.ofNullable(menu.getId());
         }

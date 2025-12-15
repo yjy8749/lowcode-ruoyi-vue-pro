@@ -32,16 +32,17 @@ public abstract class BaseLowcodeController {
 
     protected void checkSource(String formatStr, MaterialFileSource source) {
         if (source != null) {
-            if (ss.hasPermission(String.format(formatStr, StrUtil.toCamelCase(source.getName())))) {
+            String sourceNameStr = StrUtil.toCamelCase(source.name().toLowerCase());
+            if (ss.hasAnyPermissions(String.format(EDITOR, sourceNameStr),String.format(formatStr, sourceNameStr))) {
                 return;
             }
         }
         throw exception(FORBIDDEN);
     }
 
-    protected void checkSourceForRead(String formatStr, Long fileId) {
+    protected void checkSourceForRead(Long fileId) {
         MaterialFileDO materialFileDO = this.materialFileService.getMaterialFileById(fileId);
-        checkSource(formatStr, materialFileDO.getSource());
+        checkSource(QUERY, materialFileDO.getSource());
         String creator = materialFileDO.getCreator();
         if (Boolean.TRUE.equals(materialFileDO.getIsPrivate()) && !StrUtil.equals(creator, getOperator())) {
             throw exception(FORBIDDEN);

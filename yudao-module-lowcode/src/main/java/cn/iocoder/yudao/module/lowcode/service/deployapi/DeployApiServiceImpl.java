@@ -3,6 +3,7 @@ package cn.iocoder.yudao.module.lowcode.service.deployapi;
 import cn.hutool.core.util.StrUtil;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
+import cn.iocoder.yudao.module.lowcode.config.LowcodeProperties;
 import cn.iocoder.yudao.module.lowcode.controller.admin.editor.vo.*;
 import cn.iocoder.yudao.module.lowcode.dal.dataobject.deployapi.DeployApiDO;
 import cn.iocoder.yudao.module.lowcode.dal.dataobject.materialfiledata.MaterialFileDataDO;
@@ -38,6 +39,9 @@ public class DeployApiServiceImpl implements DeployApiService {
 
     @Resource
     private QueryDomainDeployApi queryDomainDeployApi;
+
+    @Resource
+    private LowcodeProperties lowcodeProperties;
 
     @Override
     public PageResult<DeployApiDO> deployApiPage(DeployApiPageReqVO pageReqVO) {

@@ -1,3 +1,0 @@
-UPDATE system_dict_data SET label = 'JSON_CONTAINS',value = 'JSON_CONTAINS' WHERE dict_type = 'lowcode_querier_field_symbols' and value = 'JSON_EXISTS';
-INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator,create_time, updater, update_time, deleted)
-VALUES (0, 'FIND_IN_SET', 'FIND_IN_SET', 'lowcode_querier_field_symbols', 0, '', '', '', '1', '2025-10-01 00:00:00','1', '2025-10-01 00:00:00', false);

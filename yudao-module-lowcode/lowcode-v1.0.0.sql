@@ -281,7 +281,11 @@ VALUES (0, 'NOTLIKE', 'NOTLIKE', 'lowcode_querier_field_symbols', 0, '', '', '',
         '2025-10-01 00:00:00', false);
 INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator,
                               create_time, updater, update_time, deleted)
-VALUES (0, 'JSON_EXISTS', 'JSON_EXISTS', 'lowcode_querier_field_symbols', 0, '', '', '', '1', '2025-10-01 00:00:00',
+VALUES (0, 'JSON_CONTAINS', 'JSON_CONTAINS', 'lowcode_querier_field_symbols', 0, '', '', '', '1', '2025-10-01 00:00:00',
+        '1', '2025-10-01 00:00:00', false);
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator,
+                              create_time, updater, update_time, deleted)
+VALUES (0, 'FIND_IN_SET', 'FIND_IN_SET', 'lowcode_querier_field_symbols', 0, '', '', '', '1', '2025-10-01 00:00:00',
         '1', '2025-10-01 00:00:00', false);
 INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator,
                               create_time, updater, update_time, deleted)
@@ -325,7 +329,11 @@ INSERT INTO system_menu (name, permission, type, sort, parent_id, path, icon, co
                          visible, keep_alive, always_show, creator, create_time, updater, update_time, deleted)
 VALUES ('低代码', '', 1, 21, 0, '/lowcode', 'fa:cubes', '', '', 0, true, true, true, '1', '2025-10-01 00:00:00', '1',
         '2025-10-01 00:00:00', false);
-SET @temp_id = (SELECT id FROM system_menu WHERE name = '低代码' and path = '/lowcode' LIMIT 1);
+SET @temp_id = (SELECT id
+                FROM system_menu
+                WHERE name = '低代码'
+                  and path = '/lowcode'
+                LIMIT 1);
 INSERT INTO system_menu (name, permission, type, sort, parent_id, path, icon, component, component_name, status,
                          visible, keep_alive, always_show, creator, create_time, updater, update_time, deleted)
 VALUES ('查询器', 'lowcode:querier:query', 2, 0, @temp_id, 'querier', 'fa:gg', 'lowcode/querier/index',
@@ -338,17 +346,29 @@ INSERT INTO system_menu (name, permission, type, sort, parent_id, path, icon, co
                          visible, keep_alive, always_show, creator, create_time, updater, update_time, deleted)
 VALUES ('集成器', '', 1, 0, @temp_id, 'integrator', 'fa:cubes', '', '', 0, true, true, true, '1', '2025-10-01 00:00:00',
         '1', '2025-10-01 00:00:00', false);
-SET @temp_id = (SELECT id FROM system_menu WHERE name = '查询器' and component_name = 'LowcodeQuerierIndex' LIMIT 1);
+SET @temp_id = (SELECT id
+                FROM system_menu
+                WHERE name = '查询器'
+                  and component_name = 'LowcodeQuerierIndex'
+                LIMIT 1);
 INSERT INTO system_menu (name, permission, type, sort, parent_id, path, icon, component, component_name, status,
                          visible, keep_alive, always_show, creator, create_time, updater, update_time, deleted)
 VALUES ('查询定义', 'lowcode:querier:editor', 3, 0, @temp_id, '', '', '', '', 0, true, true, true, '1',
         '2025-10-01 00:00:00', '1', '2025-10-01 00:00:00', false);
-SET @temp_id = (SELECT id FROM system_menu WHERE name = '设计器' and component_name = 'LowcodeDesignerIndex' LIMIT 1);
+SET @temp_id = (SELECT id
+                FROM system_menu
+                WHERE name = '设计器'
+                  and component_name = 'LowcodeDesignerIndex'
+                LIMIT 1);
 INSERT INTO system_menu (name, permission, type, sort, parent_id, path, icon, component, component_name, status,
                          visible, keep_alive, always_show, creator, create_time, updater, update_time, deleted)
 VALUES ('页面设计', 'lowcode:designer:editor', 3, 0, @temp_id, '', '', '', '', 0, true, true, true, '1',
         '2025-10-01 00:00:00', '1', '2025-10-01 00:00:00', false);
-SET @temp_id = (SELECT id FROM system_menu WHERE name = '集成器' and path = 'integrator' LIMIT 1);
+SET @temp_id = (SELECT id
+                FROM system_menu
+                WHERE name = '集成器'
+                  and path = 'integrator'
+                LIMIT 1);
 INSERT INTO system_menu (name, permission, type, sort, parent_id, path, icon, component, component_name, status,
                          visible, keep_alive, always_show, creator, create_time, updater, update_time, deleted)
 VALUES ('配置管理', 'lowcode:integrator:editor', 2, 0, @temp_id, 'config', '', 'lowcode/integrator/config',
