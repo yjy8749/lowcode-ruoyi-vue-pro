@@ -2,6 +2,7 @@ package cn.iocoder.yudao.module.lowcode.service.materialfiledata;
 
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
 import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
+import cn.iocoder.yudao.framework.tenant.core.aop.TenantIgnore;
 import cn.iocoder.yudao.module.lowcode.controller.admin.materialfiledata.vo.GetMaterialFileDataReqVO;
 import cn.iocoder.yudao.module.lowcode.controller.admin.materialfiledata.vo.MaterialFileDataSaveReqVO;
 import cn.iocoder.yudao.module.lowcode.dal.dataobject.materialfiledata.MaterialFileDataDO;
@@ -29,6 +30,7 @@ public class MaterialFileDataServiceImpl implements MaterialFileDataService {
     private MaterialFileDataMapper materialFileDataMapper;
 
     @Override
+    @TenantIgnore
     public MaterialFileDataDO getMaterialFileData(GetMaterialFileDataReqVO getReqVO) {
         return materialFileDataMapper.selectOne(new LambdaQueryWrapperX<MaterialFileDataDO>()
                 .eqIfPresent(MaterialFileDataDO::getFileId, getReqVO.getFileId())

@@ -3,6 +3,8 @@ package cn.iocoder.yudao.module.lowcode.service.deployapi;
 import cn.hutool.core.util.StrUtil;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
+import cn.iocoder.yudao.framework.tenant.core.aop.TenantIgnore;
+import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.lowcode.config.LowcodeProperties;
 import cn.iocoder.yudao.module.lowcode.controller.admin.editor.vo.*;
 import cn.iocoder.yudao.module.lowcode.dal.dataobject.deployapi.DeployApiDO;
@@ -58,13 +60,20 @@ public class DeployApiServiceImpl implements DeployApiService {
             if (StrUtil.isEmpty(apiName)) {
                 throw exception(DEPLOY_API_NAME_EMPTY_ERROR);
             }
-            var isApiNameExist = this.deployApiMapper.exists(new LambdaQueryWrapperX<DeployApiDO>()
-                    .neIfPresent(DeployApiDO::getSourceFileId, saveData.getFileId())
-                    .eqIfPresent(DeployApiDO::getApiName, apiName));
+            Boolean oldIgnore = TenantContextHolder.isIgnore();
+            try{
+                TenantContextHolder.setIgnore(true);
+                var isApiNameExist = this.deployApiMapper.exists(new LambdaQueryWrapperX<DeployApiDO>()
+                        .neIfPresent(DeployApiDO::getSourceFileId, saveData.getFileId())
+                        .eqIfPresent(DeployApiDO::getApiName, apiName));
 
-            if (isApiNameExist) {
-                throw exception(DEPLOY_API_NAME_EXISTS);
+                if (isApiNameExist) {
+                    throw exception(DEPLOY_API_NAME_EXISTS);
+                }
+            } finally {
+                TenantContextHolder.setIgnore(oldIgnore);
             }
+
             var apiIndex = this.deployApiMapper.selectCountBySourceFileId(saveData.getFileId()) + 1;
             var apiIndexStr = String.format("%0" + Math.max(String.valueOf(apiIndex).length(), 2) + "d", apiIndex);
             var apiFileId = saveData.getFileId();

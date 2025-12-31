@@ -102,9 +102,9 @@ CREATE TABLE `lowcode_deploy_api`
   CHARACTER SET = utf8mb4
   COLLATE = utf8mb4_unicode_ci COMMENT = '低代码-部署接口';
 
-CREATE UNIQUE INDEX ux_api_code ON lowcode_deploy_api (tenant_id, api_code);
-CREATE UNIQUE INDEX ux_api_version ON lowcode_deploy_api (tenant_id, api_name, source_file_version);
-CREATE UNIQUE INDEX ux_file_version ON lowcode_deploy_api (tenant_id, source_file_id, source_file_version);
+CREATE UNIQUE INDEX ux_api_code ON lowcode_deploy_api (api_code);
+CREATE UNIQUE INDEX ux_api_version ON lowcode_deploy_api (api_name, source_file_version);
+CREATE UNIQUE INDEX ux_file_version ON lowcode_deploy_api (source_file_id, source_file_version);
 
 DROP TABLE IF EXISTS `lowcode_deploy_menu`;
 CREATE TABLE `lowcode_deploy_menu`
