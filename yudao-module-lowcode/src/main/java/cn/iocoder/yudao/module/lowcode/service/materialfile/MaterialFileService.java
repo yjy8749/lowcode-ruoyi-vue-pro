@@ -51,4 +51,9 @@ public interface MaterialFileService {
      */
     boolean moveMaterialFile(MaterialFileMoveReqVO reqVO);
 
+    /**
+     * 复制文件 -物料文件
+     */
+    MaterialFileDO copyMaterialFile(MaterialFileCopyReqVO copyReqVO);
+
 }

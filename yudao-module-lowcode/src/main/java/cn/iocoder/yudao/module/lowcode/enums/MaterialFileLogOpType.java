@@ -16,6 +16,8 @@ public enum MaterialFileLogOpType implements ArrayValuable<Integer> {
     CREATE(0, "创建"),
     UPDATE(1, "修改"),
     DELETE(2, "删除"),
+    COPY(3, "复制"),
+
     TRANSFER(10, "转移所有权"),
     MOVE(11, "移动位置"),
 

@@ -2,6 +2,7 @@ package cn.iocoder.yudao.module.lowcode.controller.admin.materialfiledata;
 
 import cn.iocoder.yudao.framework.common.pojo.CommonResult;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
+import cn.iocoder.yudao.framework.tenant.core.aop.TenantIgnore;
 import cn.iocoder.yudao.module.lowcode.controller.admin.BaseLowcodeController;
 import cn.iocoder.yudao.module.lowcode.controller.admin.materialfiledata.vo.GetMaterialFileDataReqVO;
 import cn.iocoder.yudao.module.lowcode.controller.admin.materialfiledata.vo.MaterialFileDataRespVO;
@@ -31,6 +32,7 @@ public class MaterialFileDataController extends BaseLowcodeController {
 
     @GetMapping("/get")
     @Operation(summary = "获得低代码-物料文件数据")
+    @TenantIgnore
     public CommonResult<MaterialFileDataRespVO> getMaterialFileData(@Valid GetMaterialFileDataReqVO getReqVO) {
         MaterialFileDataDO materialFileData = materialFileDataService.getMaterialFileData(getReqVO);
         return success(BeanUtils.toBean(materialFileData, MaterialFileDataRespVO.class));

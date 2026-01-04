@@ -112,4 +112,12 @@ public class MaterialFileController extends BaseLowcodeController {
         return success(materialFileService.moveMaterialFile(transferReqVO));
     }
 
+    @PutMapping("/copy")
+    @Operation(summary = "复制文件-物料文件")
+    public CommonResult<MaterialFileRespVO> copyMaterialFile(@Valid @RequestBody MaterialFileCopyReqVO copyReqVO) {
+        checkSourceAndOperator(EDITOR, copyReqVO.getId());
+        var fileDO = materialFileService.copyMaterialFile(copyReqVO);
+        return success(BeanUtils.toBean(fileDO, MaterialFileRespVO.class));
+    }
+
 }

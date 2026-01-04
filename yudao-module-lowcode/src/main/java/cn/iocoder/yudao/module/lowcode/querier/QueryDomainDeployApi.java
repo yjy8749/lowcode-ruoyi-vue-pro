@@ -1,6 +1,7 @@
 package cn.iocoder.yudao.module.lowcode.querier;
 
 import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
+import cn.iocoder.yudao.framework.tenant.core.aop.TenantIgnore;
 import cn.iocoder.yudao.module.lowcode.controller.admin.editor.vo.QuerierEditorDataVO;
 import cn.iocoder.yudao.module.lowcode.controller.admin.materialfiledata.vo.GetMaterialFileDataReqVO;
 import cn.iocoder.yudao.module.lowcode.dal.dataobject.deployapi.DeployApiDO;
@@ -32,6 +33,7 @@ public class QueryDomainDeployApi {
     @Resource
     private MaterialFileDataService materialFileDataService;
 
+    @TenantIgnore
     @Cacheable(cacheNames = QUERY_DOMAIN_DEPLOY_API_KEY, key = "#apiName + '#' + #apiCode")
     public QuerierEditorDataVO getApiData(String apiName, String apiCode) {
         var deployApi = this.deployApiMapper.selectOne(new LambdaQueryWrapperX<DeployApiDO>()

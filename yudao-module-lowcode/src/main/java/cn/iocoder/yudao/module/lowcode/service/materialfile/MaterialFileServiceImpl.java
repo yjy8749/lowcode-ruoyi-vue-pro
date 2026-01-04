@@ -8,11 +8,17 @@ import cn.hutool.core.util.StrUtil;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
 import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
+import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.lowcode.controller.admin.materialfile.vo.*;
+import cn.iocoder.yudao.module.lowcode.controller.admin.materialfiledata.vo.GetMaterialFileDataReqVO;
 import cn.iocoder.yudao.module.lowcode.dal.dataobject.materialfile.MaterialFileDO;
+import cn.iocoder.yudao.module.lowcode.dal.dataobject.materialfiledata.MaterialFileDataDO;
 import cn.iocoder.yudao.module.lowcode.dal.mysql.materialfile.MaterialFileMapper;
+import cn.iocoder.yudao.module.lowcode.dal.mysql.materialfiledata.MaterialFileDataMapper;
+import cn.iocoder.yudao.module.lowcode.enums.MaterialFileDataType;
 import cn.iocoder.yudao.module.lowcode.enums.MaterialFileLogOpType;
 import cn.iocoder.yudao.module.lowcode.enums.MaterialFileStatus;
+import cn.iocoder.yudao.module.lowcode.service.materialfiledata.MaterialFileDataService;
 import cn.iocoder.yudao.module.lowcode.service.materialfilelog.MaterialFileLogService;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
@@ -38,6 +44,10 @@ public class MaterialFileServiceImpl implements MaterialFileService {
     private MaterialFileMapper materialFileMapper;
     @Resource
     private MaterialFileLogService materialFileLogService;
+    @Resource
+    private MaterialFileDataService materialFileDataService;
+    @Resource
+    private MaterialFileDataMapper materialFileDataMapper;
 
     public void collectAllChild(Long parentId, List<MaterialFileDO> results) {
         List<MaterialFileDO> children = this.materialFileMapper.selectList(new LambdaQueryWrapperX<MaterialFileDO>().eqIfPresent(MaterialFileDO::getParentId, parentId));
@@ -165,12 +175,15 @@ public class MaterialFileServiceImpl implements MaterialFileService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean transferMaterialFile(MaterialFileTransferReqVO transferReqVO) {
+        var receiverId = String.valueOf(transferReqVO.getReceiverId());
         var fileDO = validateIdAndGet(transferReqVO.getId());
         // 校验 文件是否可更新
         validateFileCanUpdate(fileDO);
+        // 校验 名称是否重复
+        validateNameNotExists(receiverId, fileDO.getParentId(), fileDO.getId(), fileDO.getName(), fileDO.getSource(), fileDO.getIsFile());
         // 更新 创建人
         var allIds = getAllChild(fileDO.getId(), true).stream().map(MaterialFileDO::getId).toList();
-        materialFileMapper.transferMaterialFile(allIds, transferReqVO.getCreator(), String.valueOf(transferReqVO.getReceiverId()));
+        materialFileMapper.transferMaterialFile(allIds, transferReqVO.getCreator(), receiverId);
         // 记录日志
         String opDetail = "转移所有权给" + transferReqVO.getReceiverName();
         materialFileLogService.saveFileLog(fileDO, MaterialFileLogOpType.TRANSFER, opDetail);
@@ -182,15 +195,63 @@ public class MaterialFileServiceImpl implements MaterialFileService {
         var fileDO = validateIdAndGet(moveReqVO.getId());
         // 校验 文件是否可更新
         validateFileCanUpdate(fileDO);
-        if (ObjUtil.equal(fileDO.getParentId(), moveReqVO.getParentId())) {
-            return true;
-        }
+        // 校验 名称是否重复
+        validateNameNotExists(fileDO.getCreator(), moveReqVO.getParentId(), fileDO.getId(), fileDO.getName(), fileDO.getSource(), fileDO.getIsFile());
         // 更新 parentId
-        materialFileMapper.updateById(MaterialFileDO.builder().id(fileDO.getId()).parentId(moveReqVO.getParentId()).build());
-        // 记录日志
-        String opDetail = "移动位置到" + moveReqVO.getParentName();
-        materialFileLogService.saveFileLog(fileDO, MaterialFileLogOpType.MOVE, opDetail);
+        if (!ObjUtil.equal(fileDO.getParentId(), moveReqVO.getParentId())) {
+            materialFileMapper.updateById(MaterialFileDO.builder().id(fileDO.getId()).parentId(moveReqVO.getParentId()).build());
+            // 记录日志
+            String opDetail = "移动位置到" + moveReqVO.getParentName();
+            materialFileLogService.saveFileLog(fileDO, MaterialFileLogOpType.MOVE, opDetail);
+        }
         return true;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public MaterialFileDO copyMaterialFile(MaterialFileCopyReqVO copyReqVO) {
+        var fileDO = validateIdAndGet(copyReqVO.getId());
+        // 校验 文件是否可更新
+        validateFileCanUpdate(fileDO);
+        // 复制文件数据
+        return copyMaterialFile(fileDO, fileDO.getParentId());
+    }
+
+    private MaterialFileDO copyMaterialFile(MaterialFileDO fileDO, Long parentId) {
+        // 复制文件
+        var toFile = BeanUtils.toBean(fileDO, MaterialFileDO.class);
+        toFile.setId(null);
+        toFile.setParentId(parentId);
+        // 生成复制文件名称
+        var isCopyNameExist = true;
+        while (isCopyNameExist) {
+            isCopyNameExist = isNameExists(toFile.getCreator(), toFile.getParentId(), toFile.getId(), toFile.getName(), toFile.getSource(), toFile.getIsFile());
+            if(isCopyNameExist) {
+                toFile.setName(toFile.getName() + "（副本）");
+            }
+        }
+        this.materialFileMapper.insert(toFile);
+        materialFileLogService.saveFileLog(toFile, MaterialFileLogOpType.COPY);
+        // 复制文件数据
+        if (Boolean.TRUE.equals(toFile.getIsFile())) {
+            var latestVersionData = this.materialFileDataService.getMaterialFileData(GetMaterialFileDataReqVO.builder()
+                    .fileId(fileDO.getId()).fileSource(fileDO.getSource()).dataType(MaterialFileDataType.MAIN.getValue()).build());
+            var toFileData = BeanUtils.toBean(latestVersionData, MaterialFileDataDO.class);
+            toFileData.setId(null);
+            toFileData.setFileId(toFile.getId());
+            toFileData.setVersion(0);
+            this.materialFileDataMapper.insert(toFileData);
+        }
+        // 复制子文件
+        if (Boolean.FALSE.equals(toFile.getIsFile())) {
+            List<MaterialFileDO> children = this.materialFileMapper.selectList(new LambdaQueryWrapperX<MaterialFileDO>().eqIfPresent(MaterialFileDO::getParentId, fileDO.getId()));
+            if (CollectionUtil.isNotEmpty(children)) {
+                for (MaterialFileDO child : children) {
+                    copyMaterialFile(child,toFile.getId());
+                }
+            }
+        }
+        return toFile;
     }
 
 
@@ -212,19 +273,24 @@ public class MaterialFileServiceImpl implements MaterialFileService {
         }
     }
 
-    // 校验 父文件下子文件 名称 是否存在
-    private void validateNameNotExists(String creator, Long parentId, Long id, String name, Integer source, Boolean isFile) {
+    // 父文件下子文件 名称 是否存在
+    private boolean isNameExists(String creator, Long parentId, Long id, String name, Integer source, Boolean isFile) {
         if (StrUtil.isNotEmpty(name)) {
-            var isExists = materialFileMapper.exists(new LambdaQueryWrapperX<MaterialFileDO>()
+            return materialFileMapper.exists(new LambdaQueryWrapperX<MaterialFileDO>()
                     .eqIfPresent(MaterialFileDO::getCreator, creator)
                     .eqIfPresent(MaterialFileDO::getParentId, parentId)
                     .neIfPresent(MaterialFileDO::getId, id)
                     .eqIfPresent(MaterialFileDO::getSource, source)
                     .eqIfPresent(MaterialFileDO::getName, name)
                     .eqIfPresent(MaterialFileDO::getIsFile, isFile));
-            if (BooleanUtil.isTrue(isExists)) {
-                throw exception(MATERIAL_FILE_NAME_EXISTS);
-            }
+        }
+        return false;
+    }
+
+    // 校验 父文件下子文件 名称 是否存在
+    private void validateNameNotExists(String creator, Long parentId, Long id, String name, Integer source, Boolean isFile) {
+        if (isNameExists(creator, parentId, id, name, source, isFile)) {
+            throw exception(MATERIAL_FILE_NAME_EXISTS);
         }
     }
 
