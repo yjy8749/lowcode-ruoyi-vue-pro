@@ -5,6 +5,7 @@ import cn.hutool.core.map.MapUtil;
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.system.SystemUtil;
+import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.module.iot.core.enums.IotDeviceMessageMethodEnum;
 import cn.iocoder.yudao.module.iot.core.mq.message.IotDeviceMessage;
 
@@ -70,6 +71,66 @@ public class IotDeviceMessageUtils {
     }
 
     /**
+     * 判断消息中是否包含指定的标识符
+     * <p>
+     * 对于不同消息类型的处理：
+     * - EVENT_POST/SERVICE_INVOKE：检查 params.identifier 是否匹配
+     * - STATE_UPDATE：检查 params.state 是否匹配
+     * - PROPERTY_POST：检查 params 中是否包含该属性 key
+     *
+     * @param message    消息
+     * @param identifier 要检查的标识符
+     * @return 是否包含
+     */
+    public static boolean containsIdentifier(IotDeviceMessage message, String identifier) {
+        if (message.getParams() == null || StrUtil.isBlank(identifier)) {
+            return false;
+        }
+        // EVENT_POST / SERVICE_INVOKE / STATE_UPDATE：使用原有逻辑
+        String messageIdentifier = getIdentifier(message);
+        if (messageIdentifier != null) {
+            return identifier.equals(messageIdentifier);
+        }
+        // PROPERTY_POST：检查 params 中是否包含该属性 key
+        if (StrUtil.equals(message.getMethod(), IotDeviceMessageMethodEnum.PROPERTY_POST.getMethod())) {
+            Map<String, Object> params = parseParamsToMap(message.getParams());
+            return params != null && params.containsKey(identifier);
+        }
+        return false;
+    }
+
+    /**
+     * 判断消息中是否不包含指定的标识符
+     *
+     * @param message    消息
+     * @param identifier 要检查的标识符
+     * @return 是否不包含
+     */
+    public static boolean notContainsIdentifier(IotDeviceMessage message, String identifier) {
+        return !containsIdentifier(message, identifier);
+    }
+
+    /**
+     * 将 params 解析为 Map
+     *
+     * @param params 参数（可能是 Map 或 JSON 字符串）
+     * @return Map，解析失败返回 null
+     */
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> parseParamsToMap(Object params) {
+        if (params instanceof Map) {
+            return (Map<String, Object>) params;
+        }
+        if (params instanceof String) {
+            try {
+                return JsonUtils.parseObject((String) params, Map.class);
+            } catch (Exception ignored) {
+            }
+        }
+        return null;
+    }
+
+    /**
      * 从设备消息中提取指定标识符的属性值
      * - 支持多种消息格式和属性值提取策略
      * - 兼容现有的消息结构
@@ -94,20 +155,19 @@ public class IotDeviceMessageUtils {
             return null;
         }
 
-        // 策略1：如果 params 不是 Map，直接返回该值（适用于简单的单属性消息）
+        // 策略 1：如果 params 不是 Map，直接返回该值（适用于简单的单属性消息）
         if (!(params instanceof Map)) {
             return params;
         }
 
+        // 策略 2：直接通过标识符获取属性值
         Map<String, Object> paramsMap = (Map<String, Object>) params;
-
-        // 策略2：直接通过标识符获取属性值
         Object directValue = paramsMap.get(identifier);
         if (directValue != null) {
             return directValue;
         }
 
-        // 策略3：从 properties 字段中获取（适用于标准属性上报消息）
+        // 策略 3：从 properties 字段中获取（适用于标准属性上报消息）
         Object properties = paramsMap.get("properties");
         if (properties instanceof Map) {
             Map<String, Object> propertiesMap = (Map<String, Object>) properties;
@@ -117,7 +177,7 @@ public class IotDeviceMessageUtils {
             }
         }
 
-        // 策略4：从 data 字段中获取（适用于某些消息格式）
+        // 策略 4：从 data 字段中获取（适用于某些消息格式）
         Object data = paramsMap.get("data");
         if (data instanceof Map) {
             Map<String, Object> dataMap = (Map<String, Object>) data;
@@ -127,13 +187,13 @@ public class IotDeviceMessageUtils {
             }
         }
 
-        // 策略5：从 value 字段中获取（适用于单值消息）
+        // 策略 5：从 value 字段中获取（适用于单值消息）
         Object value = paramsMap.get("value");
         if (value != null) {
             return value;
         }
 
-        // 策略6：如果 Map 只有两个字段且包含 identifier，返回另一个字段的值
+        // 策略 6：如果 Map 只有两个字段且包含 identifier，返回另一个字段的值
         if (paramsMap.size() == 2 && paramsMap.containsKey("identifier")) {
             for (Map.Entry<String, Object> entry : paramsMap.entrySet()) {
                 if (!"identifier".equals(entry.getKey())) {
@@ -143,6 +203,43 @@ public class IotDeviceMessageUtils {
         }
 
         // 未找到对应的属性值
+        return null;
+    }
+
+    /**
+     * 从服务调用消息中提取输入参数
+     * <p>
+     * 服务调用消息的 params 结构通常为：
+     * {
+     *     "identifier": "serviceIdentifier",
+     *     "inputData": { ... } 或 "inputParams": { ... }
+     * }
+     *
+     * @param message 设备消息
+     * @return 输入参数 Map，如果未找到则返回 null
+     */
+    @SuppressWarnings("unchecked")
+    public static Map<String, Object> extractServiceInputParams(IotDeviceMessage message) {
+        // 1. 参数校验
+        Object params = message.getParams();
+        if (params == null) {
+            return null;
+        }
+        if (!(params instanceof Map)) {
+            return null;
+        }
+        Map<String, Object> paramsMap = (Map<String, Object>) params;
+
+        // 尝试从 inputData 字段获取
+        Object inputData = paramsMap.get("inputData");
+        if (inputData instanceof Map) {
+            return (Map<String, Object>) inputData;
+        }
+        // 尝试从 inputParams 字段获取
+        Object inputParams = paramsMap.get("inputParams");
+        if (inputParams instanceof Map) {
+            return (Map<String, Object>) inputParams;
+        }
         return null;
     }
 

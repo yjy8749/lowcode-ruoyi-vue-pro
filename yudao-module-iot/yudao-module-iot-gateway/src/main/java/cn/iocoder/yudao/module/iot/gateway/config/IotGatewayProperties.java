@@ -88,6 +88,26 @@ public class IotGatewayProperties {
          */
         private MqttProperties mqtt;
 
+        /**
+         * MQTT WebSocket 组件配置
+         */
+        private MqttWsProperties mqttWs;
+
+        /**
+         * UDP 组件配置
+         */
+        private UdpProperties udp;
+
+        /**
+         * CoAP 组件配置
+         */
+        private CoapProperties coap;
+
+        /**
+         * WebSocket 组件配置
+         */
+        private WebSocketProperties websocket;
+
     }
 
     @Data
@@ -399,6 +419,227 @@ public class IotGatewayProperties {
             private String trustStorePassword;
 
         }
+
+    }
+
+    @Data
+    public static class MqttWsProperties {
+
+        /**
+         * 是否开启
+         */
+        @NotNull(message = "是否开启不能为空")
+        private Boolean enabled;
+
+        /**
+         * WebSocket 服务器端口（默认：8083）
+         */
+        private Integer port = 8083;
+
+        /**
+         * WebSocket 路径（默认：/mqtt）
+         */
+        @NotEmpty(message = "WebSocket 路径不能为空")
+        private String path = "/mqtt";
+
+        /**
+         * 最大消息大小（字节）
+         */
+        private Integer maxMessageSize = 8192;
+
+        /**
+         * 连接超时时间（秒）
+         */
+        private Integer connectTimeoutSeconds = 60;
+
+        /**
+         * 保持连接超时时间（秒）
+         */
+        private Integer keepAliveTimeoutSeconds = 300;
+
+        /**
+         * 是否启用 SSL（wss://）
+         */
+        private Boolean sslEnabled = false;
+
+        /**
+         * SSL 配置
+         */
+        private SslOptions sslOptions = new SslOptions();
+
+        /**
+         * WebSocket 子协议（通常为 "mqtt" 或 "mqttv3.1"）
+         */
+        @NotEmpty(message = "WebSocket 子协议不能为空")
+        private String subProtocol = "mqtt";
+
+        /**
+         * 最大帧大小（字节）
+         */
+        private Integer maxFrameSize = 65536;
+
+        /**
+         * SSL 配置选项
+         */
+        @Data
+        public static class SslOptions {
+
+            /**
+             * 密钥证书选项
+             */
+            private io.vertx.core.net.KeyCertOptions keyCertOptions;
+
+            /**
+             * 信任选项
+             */
+            private io.vertx.core.net.TrustOptions trustOptions;
+
+            /**
+             * SSL 证书路径
+             */
+            private String certPath;
+
+            /**
+             * SSL 私钥路径
+             */
+            private String keyPath;
+
+            /**
+             * 信任存储路径
+             */
+            private String trustStorePath;
+
+            /**
+             * 信任存储密码
+             */
+            private String trustStorePassword;
+
+        }
+
+    }
+
+    @Data
+    public static class UdpProperties {
+
+        /**
+         * 是否开启
+         */
+        @NotNull(message = "是否开启不能为空")
+        private Boolean enabled;
+
+        /**
+         * 服务端口（默认 8093）
+         */
+        private Integer port = 8093;
+
+        /**
+         * 接收缓冲区大小（默认 64KB）
+         */
+        private Integer receiveBufferSize = 65536;
+
+        /**
+         * 发送缓冲区大小（默认 64KB）
+         */
+        private Integer sendBufferSize = 65536;
+
+        /**
+         * 会话超时时间（毫秒，默认 60 秒）
+         * <p>
+         * 用于清理不活跃的设备地址映射
+         */
+        private Long sessionTimeoutMs = 60000L;
+
+        /**
+         * 会话清理间隔（毫秒，默认 30 秒）
+         */
+        private Long sessionCleanIntervalMs = 30000L;
+
+    }
+
+    @Data
+    public static class CoapProperties {
+
+        /**
+         * 是否开启
+         */
+        @NotNull(message = "是否开启不能为空")
+        private Boolean enabled;
+
+        /**
+         * 服务端口（CoAP 默认端口 5683）
+         */
+        @NotNull(message = "服务端口不能为空")
+        private Integer port = 5683;
+
+        /**
+         * 最大消息大小（字节）
+         */
+        @NotNull(message = "最大消息大小不能为空")
+        private Integer maxMessageSize = 1024;
+
+        /**
+         * ACK 超时时间（毫秒）
+         */
+        @NotNull(message = "ACK 超时时间不能为空")
+        private Integer ackTimeout = 2000;
+
+        /**
+         * 最大重传次数
+         */
+        @NotNull(message = "最大重传次数不能为空")
+        private Integer maxRetransmit = 4;
+
+    }
+
+    @Data
+    public static class WebSocketProperties {
+
+        /**
+         * 是否开启
+         */
+        @NotNull(message = "是否开启不能为空")
+        private Boolean enabled;
+
+        /**
+         * 服务器端口（默认：8094）
+         */
+        private Integer port = 8094;
+
+        /**
+         * WebSocket 路径（默认：/ws）
+         */
+        @NotEmpty(message = "WebSocket 路径不能为空")
+        private String path = "/ws";
+
+        /**
+         * 最大消息大小（字节，默认 64KB）
+         */
+        private Integer maxMessageSize = 65536;
+
+        /**
+         * 最大帧大小（字节，默认 64KB）
+         */
+        private Integer maxFrameSize = 65536;
+
+        /**
+         * 空闲超时时间（秒，默认 60）
+         */
+        private Integer idleTimeoutSeconds = 60;
+
+        /**
+         * 是否启用 SSL（wss://）
+         */
+        private Boolean sslEnabled = false;
+
+        /**
+         * SSL 证书路径
+         */
+        private String sslCertPath;
+
+        /**
+         * SSL 私钥路径
+         */
+        private String sslKeyPath;
 
     }
 
