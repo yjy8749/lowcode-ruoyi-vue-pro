@@ -13,8 +13,7 @@
         select dm.menu_id
         from lowcode_deploy_menu dm
         join system_menu sm on dm.menu_id = sm.id
-        where sm.deleted = false and dm.menu_status = 1
-        and dm.source_file_id = #{sourceFileId}
+        where sm.deleted = false and dm.source_file_id = #{sourceFileId}
         <if test="sourceFileVersion != null">
             and dm.source_file_version = #{sourceFileVersion}
         </if>

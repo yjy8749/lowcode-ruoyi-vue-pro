@@ -1,6 +1,7 @@
 package cn.iocoder.yudao.module.lowcode.dal.dataobject.materialfiledata;
 
 import cn.iocoder.yudao.framework.mybatis.core.dataobject.BaseDO;
+import cn.iocoder.yudao.framework.tenant.core.db.TenantBaseDO;
 import com.baomidou.mybatisplus.annotation.KeySequence;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
@@ -19,7 +20,7 @@ import lombok.*;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class MaterialFileDataDO extends BaseDO {
+public class MaterialFileDataDO extends TenantBaseDO {
 
     /**
      * 主键

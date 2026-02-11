@@ -2,6 +2,7 @@ package cn.iocoder.yudao.module.lowcode.integrator;
 
 import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.lang.Assert;
+import cn.iocoder.yudao.framework.tenant.core.aop.TenantIgnore;
 import cn.iocoder.yudao.module.lowcode.controller.admin.editor.vo.IntegratorEntryPullReqVO;
 import cn.iocoder.yudao.module.lowcode.controller.admin.editor.vo.IntegratorEntrySyncDataVO;
 import cn.iocoder.yudao.module.lowcode.controller.admin.materialfiledata.vo.GetMaterialFileDataReqVO;
@@ -131,6 +132,7 @@ public class IntegratorDataManager {
         return respVO;
     }
 
+    @TenantIgnore
     @Transactional(rollbackFor = Exception.class)
     public void integratorEntrySync(IntegratorEntrySyncDataVO syncDataVO) {
         Assert.notNull(syncDataVO.getMaterialFileDO());
@@ -139,7 +141,6 @@ public class IntegratorDataManager {
         {
             var exist = materialFileMapper.selectById(materialFileDO.getId());
             if (exist != null) {
-                materialFileDO.setName(exist.getName());
                 materialFileDO.setStatus(exist.getStatus());
                 materialFileMapper.updateById(materialFileDO);
             } else {
@@ -153,7 +154,6 @@ public class IntegratorDataManager {
                 for (MaterialFileDO fileDO : parentDirList) {
                     var exist = materialFileMapper.selectById(fileDO.getId());
                     if (exist != null) {
-                        fileDO.setName(exist.getName());
                         fileDO.setStatus(exist.getStatus());
                         materialFileMapper.updateById(fileDO);
                     } else {
@@ -187,6 +187,7 @@ public class IntegratorDataManager {
         }
         // 5. 同步 RefMenu (关联菜单)
         if (CollectionUtil.isNotEmpty(syncDataVO.getRefMenuParentList())) {
+            // 同步父级菜单，不存在则创建
             for (MenuDO menuDO : syncDataVO.getRefMenuParentList()) {
                 if(this.menuService.getMenu(menuDO.getId()) == null) {
                     this.menuMapper.insert(menuDO);
