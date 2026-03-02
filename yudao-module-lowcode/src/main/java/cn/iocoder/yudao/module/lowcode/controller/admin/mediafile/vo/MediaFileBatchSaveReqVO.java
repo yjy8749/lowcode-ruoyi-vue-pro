@@ -22,8 +22,8 @@ public class MediaFileBatchSaveReqVO {
     @NotNull(message = "目录id路径不能为空")
     private String dirIdPath;
 
-    @Schema(description = "文件Url列表", requiredMode = Schema.RequiredMode.REQUIRED, example = "[]")
-    @NotEmpty(message = "文件Url列表不能为空")
-    private List<String> urls;
+    @Schema(description = "文件列表", requiredMode = Schema.RequiredMode.REQUIRED, example = "[]")
+    @NotEmpty(message = "文件列表不能为空")
+    private List<MediaFileSaveReqVO> files;
 
 }

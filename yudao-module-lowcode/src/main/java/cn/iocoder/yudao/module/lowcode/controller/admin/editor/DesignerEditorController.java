@@ -46,7 +46,7 @@ public class DesignerEditorController extends BaseLowcodeController {
     @PostMapping("/deploy-menu/deploy")
     @Operation(summary = "设计器-菜单部署")
     public CommonResult<Boolean> deployMenuDeploy(@Valid @RequestBody DeployMenuDeployReqVO deployReqVO) {
-        checkSourceAndOperator(EDITOR, deployReqVO.getSourceFileId());
+        checkSourceAndOperator(DEPLOY, deployReqVO.getSourceFileId());
         return success(this.deployMenuService.deployMenuDeploy(deployReqVO));
     }
 

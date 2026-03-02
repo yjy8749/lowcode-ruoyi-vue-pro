@@ -18,6 +18,7 @@ import java.util.List;
 
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static cn.iocoder.yudao.module.lowcode.enums.ErrorCodeConstants.MEDIA_DIR_NOT_EXISTS;
+import static cn.iocoder.yudao.module.lowcode.enums.ErrorCodeConstants.MEDIA_PARENT_DIR_REF_ERROR;
 
 /**
  * 低代码-媒体库目录 Service 实现类
@@ -53,15 +54,21 @@ public class MediaDirServiceImpl implements MediaDirService {
     @Transactional(rollbackFor = Exception.class)
     public void updateMediaDir(MediaDirSaveReqVO updateReqVO) {
         // 校验存在
-        validateMediaDirExists(updateReqVO.getId());
+        var mediaDir = validateMediaDirExists(updateReqVO.getId());
+
+        // 父目录引用校验
+        var parentDir = this.mediaDirMapper.selectById(updateReqVO.getParentId());
+        var targetPattern = String.format(",%s,", mediaDir.getId());
+        var checkPath = parentDir == null ? "" : String.format(",%s,", parentDir.getIdPath());
+        if (checkPath.contains(targetPattern)) {
+            throw exception(MEDIA_PARENT_DIR_REF_ERROR);
+        }
 
         // 更新
         MediaDirDO updateObj = BeanUtils.toBean(updateReqVO, MediaDirDO.class);
         mediaDirMapper.updateById(updateObj);
 
         // 更新路径
-        var mediaDir = mediaDirMapper.selectById(updateObj.getId());
-        var parentDir = this.mediaDirMapper.selectById(mediaDir.getParentId());
         updateIdPath(parentDir, mediaDir);
     }
 
@@ -82,7 +89,7 @@ public class MediaDirServiceImpl implements MediaDirService {
         mediaDir.setIdPath(newPath);
 
         // 更新文件路径
-        if(ObjectUtil.notEqual(oldPath, newPath)) {
+        if (ObjectUtil.notEqual(oldPath, newPath)) {
             // 更新文件路径
             mediaFileMapper.update(new LambdaUpdateWrapper<MediaFileDO>()
                     .eq(MediaFileDO::getDirId, mediaDir.getId()).set(MediaFileDO::getDirIdPath, newPath));
@@ -95,10 +102,12 @@ public class MediaDirServiceImpl implements MediaDirService {
         }
     }
 
-    private void validateMediaDirExists(Long id) {
-        if (mediaDirMapper.selectById(id) == null) {
+    private MediaDirDO validateMediaDirExists(Long id) {
+        var mediaDir = mediaDirMapper.selectById(id);
+        if (mediaDir == null) {
             throw exception(MEDIA_DIR_NOT_EXISTS);
         }
+        return mediaDir;
     }
 
 }

@@ -20,6 +20,8 @@ public abstract class BaseLowcodeController {
 
     protected static final String EDITOR = "lowcode:%s:editor";
 
+    protected static final String DEPLOY = "lowcode:%s:deploy";
+
     @Resource
     SecurityFrameworkService ss;
 

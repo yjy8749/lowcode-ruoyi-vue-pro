@@ -20,10 +20,7 @@ CREATE TABLE `lowcode_material_file`
     `source_file_id`      bigint        NOT NULL DEFAULT 0 COMMENT '来源文件ID',
     `source_file_version` int           NOT NULL DEFAULT 0 COMMENT '来源文件版本号',
     PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB
-  AUTO_INCREMENT = 1
-  CHARACTER SET = utf8mb4
-  COLLATE = utf8mb4_unicode_ci COMMENT = '低代码-物料文件';
+) COMMENT = '低代码-物料文件';
 
 CREATE INDEX idx_creator ON lowcode_material_file (creator);
 CREATE INDEX idx_tenant_id ON lowcode_material_file (tenant_id);
@@ -46,10 +43,7 @@ CREATE TABLE `lowcode_material_file_data`
     `version`     int         NOT NULL DEFAULT 0 COMMENT '版本号',
     `data`        json        NOT NULL DEFAULT ('{}') COMMENT '文件数据',
     PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB
-  AUTO_INCREMENT = 1
-  CHARACTER SET = utf8mb4
-  COLLATE = utf8mb4_unicode_ci COMMENT = '低代码-物料文件数据';
+) COMMENT = '低代码-物料文件数据';
 
 CREATE INDEX idx_tenant_id ON lowcode_material_file_data (tenant_id);
 CREATE UNIQUE INDEX ux_file ON lowcode_material_file_data (file_id, data_type, version);
@@ -73,10 +67,7 @@ CREATE TABLE `lowcode_material_file_log`
     `op_version`  int           NOT NULL DEFAULT 0 COMMENT '版本号',
     `op_data`     json          NOT NULL DEFAULT ('{}') COMMENT '文件数据',
     PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB
-  AUTO_INCREMENT = 1
-  CHARACTER SET = utf8mb4
-  COLLATE = utf8mb4_unicode_ci COMMENT = '低代码-物料文件操作日志';
+) COMMENT = '低代码-物料文件操作日志';
 
 CREATE INDEX idx_tenant_id ON lowcode_material_file_log (tenant_id);
 CREATE INDEX idx_file_id ON lowcode_material_file_log (file_id);
@@ -97,10 +88,7 @@ CREATE TABLE `lowcode_deploy_api`
     `source_file_version` int          NOT NULL DEFAULT 0 COMMENT '接口源文件版本号',
     `api_status`          int          NOT NULL DEFAULT 0 COMMENT '接口状态 1-已上线 2-已下线',
     PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB
-  AUTO_INCREMENT = 1
-  CHARACTER SET = utf8mb4
-  COLLATE = utf8mb4_unicode_ci COMMENT = '低代码-部署接口';
+) COMMENT = '低代码-部署接口';
 
 CREATE UNIQUE INDEX ux_api_code ON lowcode_deploy_api (api_code);
 CREATE UNIQUE INDEX ux_api_version ON lowcode_deploy_api (api_name, source_file_version);
@@ -121,10 +109,7 @@ CREATE TABLE `lowcode_deploy_menu`
     `source_file_version` int         NOT NULL DEFAULT 0 COMMENT '菜单源文件版本号',
     `menu_status`         int         NOT NULL DEFAULT 0 COMMENT '菜单状态 1-已上线 2-已下线',
     PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB
-  AUTO_INCREMENT = 1
-  CHARACTER SET = utf8mb4
-  COLLATE = utf8mb4_unicode_ci COMMENT = '低代码-部署菜单';
+) COMMENT = '低代码-部署菜单';
 
 CREATE INDEX idx_menu_id ON lowcode_deploy_menu (menu_id);
 CREATE INDEX idx_file_version ON lowcode_deploy_menu (source_file_id, source_file_version);
@@ -145,10 +130,7 @@ CREATE TABLE `lowcode_integrator_config`
     `integrate_key`   varchar(255) NOT NULL DEFAULT '' COMMENT '集成校验KEY',
     `comment`         varchar(255) NOT NULL DEFAULT '' COMMENT '备注',
     PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB
-  AUTO_INCREMENT = 1
-  CHARACTER SET = utf8mb4
-  COLLATE = utf8mb4_unicode_ci COMMENT = '低代码-集成器配置';
+) COMMENT = '低代码-集成器配置';
 
 CREATE INDEX idx_integrate_entry ON lowcode_integrator_config (integrate_entry);
 CREATE INDEX idx_integrate_key ON lowcode_integrator_config (integrate_key);
@@ -347,12 +329,16 @@ SET @temp_id = (SELECT id FROM system_menu WHERE name = '查询器' and componen
 INSERT INTO system_menu (name, permission, type, sort, parent_id, path, icon, component, component_name, status,
                          visible, keep_alive, always_show, creator, create_time, updater, update_time, deleted)
 VALUES ('查询定义', 'lowcode:querier:editor', 3, 0, @temp_id, '', '', '', '', 0, true, true, true, '1',
+        '2025-10-01 00:00:00', '1', '2025-10-01 00:00:00', false),
+       ('查询发布', 'lowcode:querier:deploy', 3, 0, @temp_id, '', '', '', '', 0, true, true, true, '1',
         '2025-10-01 00:00:00', '1', '2025-10-01 00:00:00', false);
 
 SET @temp_id = (SELECT id FROM system_menu WHERE name = '设计器' and component_name = 'LowcodeDesignerIndex' LIMIT 1);
 INSERT INTO system_menu (name, permission, type, sort, parent_id, path, icon, component, component_name, status,
                          visible, keep_alive, always_show, creator, create_time, updater, update_time, deleted)
 VALUES ('页面设计', 'lowcode:designer:editor', 3, 0, @temp_id, '', '', '', '', 0, true, true, true, '1',
+        '2025-10-01 00:00:00', '1', '2025-10-01 00:00:00', false),
+       ('页面发布', 'lowcode:designer:deploy', 3, 0, @temp_id, '', '', '', '', 0, true, true, true, '1',
         '2025-10-01 00:00:00', '1', '2025-10-01 00:00:00', false);
 
 SET @temp_id = (SELECT id FROM system_menu WHERE name = '集成器' and path = 'integrator' LIMIT 1);

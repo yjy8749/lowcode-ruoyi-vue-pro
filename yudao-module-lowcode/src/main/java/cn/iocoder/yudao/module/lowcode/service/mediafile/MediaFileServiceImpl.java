@@ -30,17 +30,18 @@ public class MediaFileServiceImpl implements MediaFileService {
     @Transactional(rollbackFor = Exception.class)
     public Boolean batchSave(MediaFileBatchSaveReqVO batchSaveReqVO) {
 
-        //批量保存
-        var files = batchSaveReqVO.getUrls().stream().map(url -> {
-            var file = new MediaFileDO();
-            file.setDirId(batchSaveReqVO.getDirId());
-            file.setDirIdPath(batchSaveReqVO.getDirIdPath());
-            file.setType(FileUtil.getSuffix(url));
-            file.setUrl(url);
-            return file;
+        var files = batchSaveReqVO.getFiles().stream().map(file -> {
+            var fileDO = new MediaFileDO();
+            fileDO.setDirId(batchSaveReqVO.getDirId());
+            fileDO.setDirIdPath(batchSaveReqVO.getDirIdPath());
+            fileDO.setType(file.getType());
+            fileDO.setUrl(file.getUrl());
+            fileDO.setName(file.getName());
+            fileDO.setContentType(file.getContentType());
+            fileDO.setSize(file.getSize());
+            return fileDO;
         }).toList();
 
-        //返回
         return this.mediaFileMapper.insertBatch(files);
     }
 

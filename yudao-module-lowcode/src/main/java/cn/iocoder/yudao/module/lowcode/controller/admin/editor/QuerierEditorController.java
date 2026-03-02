@@ -112,7 +112,7 @@ public class QuerierEditorController extends BaseLowcodeController {
     @PostMapping("/deploy-api/deploy")
     @Operation(summary = "查询器-接口部署")
     public CommonResult<MaterialFileDataRespVO> deployApiDeploy(@Valid @RequestBody DeployApiDeployReqVO deployReqVO) {
-        checkSourceAndOperator(EDITOR, deployReqVO.getFileId());
+        checkSourceAndOperator(DEPLOY, deployReqVO.getFileId());
         QuerierEditorDataVO querierEditorDataVO = JSON.parseObject(deployReqVO.getData(), QuerierEditorDataVO.class);
         var dataSourceConfig = this.dataSourceConfigService.getDataSourceConfig(querierEditorDataVO.getDataSourceId());
         String dataSourceName = dataSourceConfig.getName();
@@ -145,14 +145,14 @@ public class QuerierEditorController extends BaseLowcodeController {
     @PostMapping("/deploy-api/update-status")
     @Operation(summary = "查询器-接口状态更新")
     public CommonResult<Boolean> deployApiUpdateStatus(@Valid @RequestBody DeployApiUpdateStatusReqVO updateStatusReqVO) {
-        checkSourceAndOperator(EDITOR, updateStatusReqVO.getSourceFileId());
+        checkSourceAndOperator(DEPLOY, updateStatusReqVO.getSourceFileId());
         return success(this.deployApiService.deployApiUpdateStatus(updateStatusReqVO));
     }
 
     @PostMapping("/deploy-api/delete")
     @Operation(summary = "查询器-接口删除")
     public CommonResult<Boolean> deployApiDelete(@Valid @RequestBody DeployApiDeleteReqVO deleteReqVO) {
-        checkSourceAndOperator(EDITOR, deleteReqVO.getSourceFileId());
+        checkSourceAndOperator(DEPLOY, deleteReqVO.getSourceFileId());
         return success(this.deployApiService.deployApiDelete(deleteReqVO));
     }
 

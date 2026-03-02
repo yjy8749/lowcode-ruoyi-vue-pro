@@ -1,10 +1,11 @@
 package cn.iocoder.yudao.module.lowcode.dal.dataobject.mediafile;
 
-import cn.iocoder.yudao.framework.mybatis.core.dataobject.BaseDO;
-import com.baomidou.mybatisplus.annotation.KeySequence;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.*;
+import java.util.*;
+import java.time.LocalDateTime;
+import java.time.LocalDateTime;
+import com.baomidou.mybatisplus.annotation.*;
+import cn.iocoder.yudao.framework.mybatis.core.dataobject.BaseDO;
 
 /**
  * 低代码-媒体库文件 DO
@@ -35,12 +36,25 @@ public class MediaFileDO extends BaseDO {
      */
     private String dirIdPath;
     /**
-     * 文件类型
+     * 文件名称
      */
-    private String type;
+    private String name;
     /**
      * 文件Url
      */
     private String url;
+    /**
+     * 文件类型
+     */
+    private String type;
+    /**
+     * 内容类型
+     */
+    private String contentType;
+    /**
+     * 文件大小
+     */
+    private Integer size;
+
 
 }
